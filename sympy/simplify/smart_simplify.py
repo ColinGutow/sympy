@@ -1,10 +1,16 @@
 """
 Proof of principle using hashes to speed up simplification by substituting
 symbols for equivalent expressions.
+
+For some expressions this speeds up the process of simplification by
+substituting in a variable for each part of the polynomial in order to reduce
+the number of needed operations
+
 """
 from sympy.core.expr import Expr
 from sympy.core.symbol import Symbol
 from sympy.core.numbers import *
+
 
 def presimpstst(expr):
     """
@@ -12,7 +18,9 @@ def presimpstst(expr):
     substituted with a temporary symbol/variable to facilitate simplification.
     :param expr: SymPy expression
     :return: substituted SymPy expression, list of substitutions made.
+
     """
+
     def makehashtable(expr, hashtable=[]):
         """
         Find which parts of the expression have matching hashes and return a
@@ -21,6 +29,7 @@ def presimpstst(expr):
         :param hashtable: list of lists containing matching objects sorted by
         hash. Passed to allow recursion.
         :return: Nothing as updates go into the passed hashtable.
+
         """
         for obj in expr.args:
             if len(hashtable) == 0:
@@ -42,6 +51,7 @@ def presimpstst(expr):
         Build the list of expressions to substitute a temporary symbol for.
         :param expr: The expression to be searched and substituted into.
         :return: list of expressions to substitute.
+
         """
         lst = []
         fnllst = []
@@ -52,13 +62,16 @@ def presimpstst(expr):
 
         return fnllst
 
-    def recurtest(lst, fnllst = []):
+    def recurtest(lst, fnllst=[]):
         """
-        Recurses through the sublist and removes all expressions with matching hashes but mismatched values. fnllst will contain matching numbers
+        Recurses through the sublist and removes all expressions with matching
+        hashes but mismatched values. fnllst will contain matching numbers
         which are ignored in the final substitution tests.
         :param lst: The list containing all matching hashes.
-        :param fnllst: The recursive input to the  list used to track actual matches.
-        :return: fnllst of its last recursion, which should contain all actual matches that can be substituted
+        :param fnllst: The recursive input to the  list used to track actual
+        matches.
+        :return: fnllst of its last recursion, which should contain all actual
+        matches that can be substituted
 
         """
 
@@ -66,9 +79,9 @@ def presimpstst(expr):
             mtchlst = []
             newlst = []
             if len(lst[i]) > 2 and not (isinstance(lst[i][1], Integer)
-                                    or isinstance(lst[i][1], float)
-                                    or isinstance(lst[i][1], Symbol)
-                                    or isinstance(lst[i][1], Number)):
+                                        or isinstance(lst[i][1], float)
+                                        or isinstance(lst[i][1], Symbol)
+                                        or isinstance(lst[i][1], Number)):
                 mtchlst.append(lst[i][0])
                 if lst[i][1] != I:
                     for k in range(1, len(lst[i])):
@@ -96,31 +109,35 @@ def presimpstst(expr):
         :param didsubs: list to record which substitutions are done
         :return: newexpr a substituted SymPy expression, didsubs updated to
         reflect any substitutions.
+
         """
-        exprtype=type(expr)
+        exprtype = type(expr)
         tempargs = list(expr.args)
         for k in range(len(tempargs)):
-            if tempargs[k].__hash__() == subhash and tempargs[k] == firstexpr and not isinstance(tempargs[k], Number):
-                    tempsym = Symbol('sub_'+str(hashidx))
-                    tempargs[k] = tempsym
-                    didsubs = True
-            if isinstance(tempargs[k],Expr):
+            if tempargs[k].__hash__() == subhash and tempargs[k] == firstexpr \
+                and not isinstance(tempargs[k], Number):
+                tempsym = Symbol('sub_' + str(hashidx))
+                tempargs[k] = tempsym
+                didsubs = True
+            if isinstance(tempargs[k], Expr):
                 if tempargs[k] != I:
-                    if not(isinstance(tempargs[k],Symbol)
-                           or isinstance(tempargs[k],float)
-                           or isinstance(tempargs[k],Integer)
-                           or isinstance(tempargs[k],Number)):
+                    if not (isinstance(tempargs[k], Symbol)
+                            or isinstance(tempargs[k], float)
+                            or isinstance(tempargs[k], Integer)
+                            or isinstance(tempargs[k], Number)):
                         tempargs[k], didsubs = crawlexprtree(tempargs[k],
-                                                             subhash, firstexpr, hashidx,
+                                                             subhash,
+                                                             firstexpr,
+                                                             hashidx,
                                                              didsubs)
         tempargs = tuple(tempargs)
         newexpr = exprtype(*tempargs)
         return newexpr, didsubs
 
     sublst = makesublst(expr)
-    didsublst = [False]*len(sublst)
-    exprtype=type(expr)
+    didsublst = [False] * len(sublst)
+    exprtype = type(expr)
     temp = expr
     for k in range(len(sublst)):
-        temp,didsublst[k] = crawlexprtree(temp, sublst[k][0], sublst[k][1], k)
-    return temp,didsublst
+        temp, didsublst[k] = crawlexprtree(temp, sublst[k][0], sublst[k][1], k)
+    return temp, didsublst
